@@ -1,0 +1,28 @@
+{
+  "name": "hideway",
+  "version": "0.0.0",
+  "description": "Well, we sure need to hide it away!",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/nezaidu/hideway"
+  },
+  "author": "",
+  "license": "BSD-2-Clause",
+  "bugs": {
+    "url": "https://github.com/nezaidu/hideway/issues"
+  },
+  "devDependencies": {
+    "babelify": "~5.0.3",
+    "browser-sync": "^1.7.1",
+    "browserify": "^6.3.3",
+    "gulp-rename": "^1.2.0",
+    "lodash": "^2.4.1",
+    "rimraf": "~2.2.8",
+    "watchify": "^2.1.1",
+    "vinyl-source-stream": "^1.0.0"
+  }
+}
