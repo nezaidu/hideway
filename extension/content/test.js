@@ -2,14 +2,17 @@
 // https://github.com/robin-drexler/chrome-extension-auto-reload/blob/master/app/js/background.js
 var globalInsertEvent;
 var selectedText;
-console.log("Hello!")
 
 
 chrome.extension.onMessage.addListener(function (msg, sender, sendResponse){
   if (msg.selectionText) {
-    hideOccurrences(msg.selectionText);
-  } else {
-    console.log(selectedText + '!!');
+    chrome.storage.local.get("words", function(response) {
+      var words = response.words;
+      words.push(msg.selectionText);
+      chrome.storage.local.set({words: words}, function() {
+        window.location.reload();
+      })
+    })
   }
 });
 
@@ -22,23 +25,51 @@ function walkTheDOM(node, func) {
     }
 }
 
-function processOccurence(text) {
+function highlightWords(text, keyword) {
+  // http://stackoverflow.com/questions/24234304/regex-match-entire-word-characters-between-whitespace-that-contain-letters-i
+  var words = text.split(" ");
+  var keep = [];
+  
+  for (var i = 0; i < words.length; i++) {
+    if (words[i].indexOf("spanclass") != -1) {
+      keep.push({"index": i, "word": words[i]});
+      words[i] = "EXCLUDE";
+    }
+  };
+
+  text = words.join(" ");
+  var regexp = new RegExp('(\\S*' + keyword + '(?!span)\\S*)', 'gi');
+
+  words = text.split(" ");
+
+  for (var i = 0; i < keep.length; i++) {
+    words[keep[i]["index"]] = keep[i]["word"];
+  };
+  text = words.join(" ");
+
+  return text.replace(regexp, "<spanclass='hideway-hide'>$1</span>");
+}
+
+function processOccurence(words) {
   function _processOccurence(node) {
     if (node.parentNode && node.parentNode.nodeName == "SCRIPT") return;  
     if (!node.parentNode) return;
     if (node.nodeType === 3) { // Is it a Text node?
-      var nodeText = node.data.trim();
-      if (nodeText.length > 0) { // Does it have non white-space text content?
-        var indexOf = node.parentNode.innerHTML.toLowerCase().indexOf(text); 
-        // todo - if innerHTML has more than one text occurence, check every one
-        if (indexOf >= 0) {           
-          var newInnerHtml = node.parentNode.innerHTML.split(''); 
-          
-          var newText = '<span class="hideway-hide">' + text + '</span>';
-          
-          newInnerHtml.splice(indexOf, text.length, newText);
+      var nodeText = node.data.trim().toLowerCase();
+
+      if (nodeText.length > 0) { 
+        var newNode = document.createElement('span');
+        var newInnerHtml = node.data;
+
+        for (index in words) {
+          var newInnerHtml = highlightWords(newInnerHtml, words[index]);
+        }
+
+        if (newInnerHtml.indexOf('<span') != -1) {
+          newNode.innerHTML = newInnerHtml.replace(/spanclass/g, 'span class')
+          // newNode.className = 'hideway-hide2';
           window.block = true;
-          node.parentNode.innerHTML = newInnerHtml.join('');
+          node.parentNode.replaceChild(newNode, node);
           window.block = false;
         }
       }
@@ -48,21 +79,20 @@ function processOccurence(text) {
   return _processOccurence;
 }
 
-function hideOccurrences(text) {
-  text = text.toLowerCase();
-  walkTheDOM(document.body, processOccurence(text));
+function hideOccurrences(words) {
+  walkTheDOM(document.body, processOccurence(words));
 
   document.body.removeEventListener("DOMNodeInserted", globalInsertEvent, false);
 
-  globalInsertEvent = function(text) {
+  globalInsertEvent = function(words) {
     function test(mutation) { 
       if (window.block) return;
       if (mutation.target.className && mutation.target.className.indexOf('hideway-hide') != -1) return;
       var node = mutation.target;
-      walkTheDOM(node, processOccurence(text));
+      walkTheDOM(node, processOccurence(words));
     }
     return test;
-  }(text);
+  }(words);
 
   document.body.addEventListener("DOMNodeInserted", globalInsertEvent, false);
 }
@@ -72,6 +102,7 @@ document.addEventListener('contextmenu', function(e) {
   var _selectedText = selection.toString();
 
   if (!_selectedText) {
+    if (!e.ctrlKey) return;
     selection.modify('extend','backward','word');        
     var b = selection.toString();
 
@@ -81,17 +112,29 @@ document.addEventListener('contextmenu', function(e) {
 
     selectedText = (b + a).trim();
     if (confirm("Скрыть " + selectedText + "?(" + selectedText.length + ")")) {
-      hideOccurrences(selectedText);
+      chrome.storage.local.get("words", function(response) {
+        var words = response.words;
+        words.push(selectedText);
+        chrome.storage.local.set({words: words}, function() {
+          window.location.reload();
+        })
+      })
     }
     return e.preventDefault();
   } else {
     selectedText = _selectedText;
   }
-
-  // hideOccurrences(selectedText);
   // chrome.storage.local.set({"selectedText": selectedText})
 
 }, false);
 
+chrome.storage.local.get("words", function(response) {
+  hideOccurrences(response.words);
+})
 
-      
+// chrome.storage.local.set({"words": [
+//   "касьянов", "крымнаш", "путин", "кадыров", "чечня", 
+//   "собянин", "навальный", "единая россия", 
+//   "чайка", "дальнобойщик", "ходорковск"]}, function() {
+
+//   })

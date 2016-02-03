@@ -1,8 +1,15 @@
 .hideway-hide {
-    color: black;
-    background-color: black;
+    color: lightgray;
+    background-color: lightgray;
+    text-shadow: none;
+    text-decoration: none;
 }
 
+/*.hideway-hide2 {
+    color: white;
+    background-color: white;
+}
+*/
 /*.hideway-hide:hover {
     background-color: inherit;
     text-decoration: none;

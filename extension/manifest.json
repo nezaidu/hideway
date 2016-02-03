@@ -22,7 +22,7 @@
   "content_scripts": [{
     "js": ["content/test.js"],
     "css": ["content/test.css"],
-    "run_at": "document_start",
+    "run_at": "document_end",
     "matches": ["*://*/*"]
   }]
 }
